@@ -1,0 +1,5 @@
+{
+    "longLifeToken": "your-homeassistant-long-life-token",
+    "discordToken": "your-discord-token",
+    "homeAddress": "your-homeassistant-address"
+}
