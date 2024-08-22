@@ -29,7 +29,7 @@ module.exports = {
 
         responseData = responseData.map((entity) => entity.entity_id.replace("light.", ""));
 
-		const filtered = responseData.filter(choice => choice.startsWith(focusedOption.value));
+        const filtered = responseData.filter(choice => choice.startsWith(focusedOption.value)).slice(0, 25);
         await interaction.respond(
 			filtered.map(choice => ({ name: choice, value: choice })),
 		);
@@ -53,21 +53,39 @@ module.exports = {
             Authorization: `Bearer ${longLifeToken}`,
             'Content-Type': 'application/json'
             },
-            body: JSON.stringify({"entity_id": `light.${light}`}) // Add an empty body
+            body: JSON.stringify({
+            "entity_id": `light.${light}`,
+            })
         })
 
         const responseData = await response.json();
 
         if(responseData.length === 0) {
-            const errorEmbed = new EmbedBuilder()
-                .setColor("#ff4d4d")
-                .setTitle("Error")
+            if(response.status != 200) {
+                const errorEmbed = new EmbedBuilder()
+                    .setColor("#ff4d4d")
+                    .setTitle("Error")
+                    .setDescription(
+                        `There was an error toggling the light: ${light}. Please try again later.`,
+                    );
+
+                await interaction.editReply({
+                    embeds: [errorEmbed],
+                });
+
+                return;
+            }
+
+            // Assume it was successful
+            const pingEmbed = new EmbedBuilder()
+                .setColor("#53a653")
+                .setTitle("Light Changed")
                 .setDescription(
-                    `There was an error toggling the light: ${light}. Please try again later.`,
+                    `You're light: ${light} has been toggled.`,
                 );
 
             await interaction.editReply({
-                embeds: [errorEmbed],
+                embeds: [pingEmbed],
             });
 
             return;

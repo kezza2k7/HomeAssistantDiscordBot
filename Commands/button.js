@@ -1,13 +1,14 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { longLifeToken, homeAddress } = require("../config.json");
+
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName("switch")
-        .setDescription("Toggle a switch on and off")
+        .setName("button")
+        .setDescription("Press a button")
         .addStringOption((option) =>
             option
-                .setName("switch")
-                .setDescription("What Switch would you like to toggle?")
+                .setName("button")
+                .setDescription("What button would you like to press?")
                 .setRequired(true)
                 .setAutocomplete(true)
         ),
@@ -25,9 +26,9 @@ module.exports = {
 
         let responseData = await response.json();
 
-        responseData = responseData.filter((entity) => entity.entity_id.startsWith("switch."));
+        responseData = responseData.filter((entity) => entity.entity_id.startsWith("input_button."));
 
-        responseData = responseData.map((entity) => entity.entity_id.replace("switch.", ""));
+        responseData = responseData.map((entity) => entity.entity_id.replace("input_button.", ""));
 
         const filtered = responseData.filter(choice => choice.startsWith(focusedOption.value)).slice(0, 25);
         await interaction.respond(
@@ -35,11 +36,11 @@ module.exports = {
 		);
     },
     async execute(interaction) {
-        const switche = interaction.options.getString("switch");
+        const buttonName = interaction.options.getString("button");
 
         const pingingEmbed = new EmbedBuilder()
             .setColor("#9d9d9d")
-            .setTitle("Changing the switch status...");
+            .setTitle("Pressing the button...");
 
         await interaction.reply({
             embeds: [pingingEmbed],
@@ -47,13 +48,13 @@ module.exports = {
             ephemeral: true,
         });
 
-        const response = await fetch(`${homeAddress}/api/services/switch/toggle`, {
+        const response = await fetch(`${homeAddress}/api/services/input_button/press`, {
             method: 'POST',
             headers: { 
             Authorization: `Bearer ${longLifeToken}`,
             'Content-Type': 'application/json'
             },
-            body: JSON.stringify({"entity_id": `switch.${switche}`}) // Add an empty body
+            body: JSON.stringify({"entity_id": `input_button.${buttonName}`})
         })
 
         const responseData = await response.json();
@@ -63,7 +64,7 @@ module.exports = {
                 .setColor("#ff4d4d")
                 .setTitle("Error")
                 .setDescription(
-                    `There was an error toggling the switch: ${switche}. Please try again later.`,
+                    `There was an error pressing the button ${buttonName}. Please try again later.`,
                 );
 
             await interaction.editReply({
@@ -75,9 +76,9 @@ module.exports = {
 
         const pingEmbed = new EmbedBuilder()
             .setColor("#53a653")
-            .setTitle("Switch Changed")
+            .setTitle("Button Pressed")
             .setDescription(
-                `You're switch: ${responseData[0].entity_id} has been toggled.\nIt is now ${responseData[0].state}.`,
+                `You have pressed: ${responseData[0].entity_id}.`,
             );
 
         await interaction.editReply({

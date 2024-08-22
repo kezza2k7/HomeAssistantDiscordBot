@@ -1,13 +1,14 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { longLifeToken, homeAddress } = require("../config.json");
+
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName("switch")
-        .setDescription("Toggle a switch on and off")
+        .setName("sensor")
+        .setDescription("Gets data from a sensor")
         .addStringOption((option) =>
             option
-                .setName("switch")
-                .setDescription("What Switch would you like to toggle?")
+                .setName("sensor")
+                .setDescription("What sensor would you like to get data from?")
                 .setRequired(true)
                 .setAutocomplete(true)
         ),
@@ -25,9 +26,9 @@ module.exports = {
 
         let responseData = await response.json();
 
-        responseData = responseData.filter((entity) => entity.entity_id.startsWith("switch."));
+        responseData = responseData.filter((entity) => entity.entity_id.startsWith("sensor."));
 
-        responseData = responseData.map((entity) => entity.entity_id.replace("switch.", ""));
+        responseData = responseData.map((entity) => entity.entity_id.replace("sensor.", ""));
 
         const filtered = responseData.filter(choice => choice.startsWith(focusedOption.value)).slice(0, 25);
         await interaction.respond(
@@ -35,11 +36,11 @@ module.exports = {
 		);
     },
     async execute(interaction) {
-        const switche = interaction.options.getString("switch");
+        const sensorName = interaction.options.getString("sensor");
 
         const pingingEmbed = new EmbedBuilder()
             .setColor("#9d9d9d")
-            .setTitle("Changing the switch status...");
+            .setTitle("Getting Sensor Data...");
 
         await interaction.reply({
             embeds: [pingingEmbed],
@@ -47,13 +48,12 @@ module.exports = {
             ephemeral: true,
         });
 
-        const response = await fetch(`${homeAddress}/api/services/switch/toggle`, {
-            method: 'POST',
+        const response = await fetch(`${homeAddress}/api/states/sensor.${sensorName}`, {
+            method: 'GET',
             headers: { 
             Authorization: `Bearer ${longLifeToken}`,
             'Content-Type': 'application/json'
             },
-            body: JSON.stringify({"entity_id": `switch.${switche}`}) // Add an empty body
         })
 
         const responseData = await response.json();
@@ -63,7 +63,7 @@ module.exports = {
                 .setColor("#ff4d4d")
                 .setTitle("Error")
                 .setDescription(
-                    `There was an error toggling the switch: ${switche}. Please try again later.`,
+                    `There was an error getting sensor data from ${sensorName}. Please try again later.`,
                 );
 
             await interaction.editReply({
@@ -73,11 +73,16 @@ module.exports = {
             return;
         }
 
+        const startDate = new Date('1970-01-01T00:00:00Z');
+        const lastUpdated = new Date(responseData.last_updated);
+
+        const secondsSince2000 = Math.floor((lastUpdated - startDate) / 1000);
+
         const pingEmbed = new EmbedBuilder()
             .setColor("#53a653")
-            .setTitle("Switch Changed")
+            .setTitle("Sensor Data")
             .setDescription(
-                `You're switch: ${responseData[0].entity_id} has been toggled.\nIt is now ${responseData[0].state}.`,
+            `${sensorName}\nState: ${responseData.state}\nLast Updated: <t:${secondsSince2000}:R>`,
             );
 
         await interaction.editReply({
